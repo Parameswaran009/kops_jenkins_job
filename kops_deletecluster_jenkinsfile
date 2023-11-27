@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+    
+    environment {
+        CLUSTER_NAME = 'sight.k8s.local'
+        KOPS_STATE_STORE = 's3://mwaa-environmentbucket-beynhcbcqflf'
+        AWS_ACCESS_KEY_ID = 'AKIAS27XG2CUPI63Q7U2'
+        AWS_SECRET_ACCESS_KEY = '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'
+    }
+
+    stages {
+        stage('Install kops') {
+            steps {
+                script {
+                    sh 'wget https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | jq -r .tag_name)/kops-linux-amd64'
+                    sh 'chmod +x kops-linux-amd64'
+                    sh 'sudo mv kops-linux-amd64 /usr/local/bin/kops'
+                }
+            }
+        }
+
+        stage('Delete Cluster') {
+            steps {
+                script {
+                    sh "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} kops delete cluster ${CLUSTER_NAME} --state=${KOPS_STATE_STORE} --yes"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "This will always run, regardless of pipeline success or failure."
+            // Add additional cleanup steps if needed
+        }
+    }
+}
+
